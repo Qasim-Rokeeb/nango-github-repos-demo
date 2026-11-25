@@ -1,0 +1,87 @@
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --text: #18212f;
+  --muted: #5f6b7a;
+  --border: #d9dee5;
+  --accent: #0b5fff;
+  --accent-soft: #e8f0ff;
+  --danger: #b42318;
+  --danger-soft: #feeceb;
+  --success: #16794c;
+  --success-soft: #e8f7ef;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #eef3fb 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+h1 { margin: 0 0 8px; font-size: 2rem; line-height: 1.1; }
+p { line-height: 1.5; }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin: 20px 0; }
+
+button {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.secondary {
+  background: white;
+  color: var(--accent);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status, .notice, .error, .success {
+  padding: 12px 14px;
+  border-radius: 8px;
+  margin: 12px 0;
+  font-size: 0.95rem;
+}
+.status { background: #f3f5f7; border: 1px solid var(--border); }
+.notice { background: var(--accent-soft); border: 1px solid #c9dcff; }
+.error { background: var(--danger-soft); border: 1px solid #f2c6c2; color: #7a271a; }
+.success { background: var(--success-soft); border: 1px solid #bfe3cf; color: #145c3a; }
+
+.repo-list { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 12px; }
+.repo {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  background: #fbfcfd;
+}
+.repo h3 { margin: 0 0 4px; font-size: 1rem; }
+.repo a { color: var(--accent); text-decoration: none; }
+.repo a:hover { text-decoration: underline; }
+.meta { font-size: 0.85rem; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.small { font-size: 0.85rem; color: var(--muted); }
+code { background: #eef1f4; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
