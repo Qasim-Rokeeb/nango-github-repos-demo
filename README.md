@@ -6,8 +6,8 @@ This is a minimal Next.js + TypeScript example that shows how to use [Nango](htt
 
 ## Preview
 
-- Screenshot/recording: `TODO: Add a screenshot or short recording of the connect + fetch flow.`
-- Live demo: `TODO: Add a verified live demo URL if one exists.`
+- Screenshot/recording: ![Nango GitHub repos demo showing connected status and fetched repositories](docs/preview.png)
+- Live demo: [https://nango-devex.vercel.app/](https://nango-devex.vercel.app/) (user-provided; deployment not independently verified in this session)
 
 ## What you’ll learn
 
@@ -43,7 +43,7 @@ This is a minimal Next.js + TypeScript example that shows how to use [Nango](htt
 ### 1. Clone and install
 
 ```bash
-git clone <TODO: repository-url>
+git clone https://github.com/Qasim-Rokeeb/nango-github-repos-demo.git
 cd nango-github-repos-demo
 npm install
 ```
@@ -231,7 +231,7 @@ If deploying, you would need to:
 
 ## Challenge context
 
-- **Day**: `TODO: Confirm challenge day number`
+- **Day**: 2 of 17
 - **Company/tool**: Nango + GitHub API
 - **Developer task**: Connect a GitHub account with Nango and retrieve up to five repositories in a minimal Next.js app.
 - **Artifact**: This repository (Next.js + TypeScript demo with Connect UI, server session endpoint, and Nango-proxied GitHub repo fetch).
