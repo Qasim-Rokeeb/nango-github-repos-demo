@@ -80,11 +80,18 @@ Open [http://localhost:3000](http://localhost:3000). If port 3000 is already in 
 
 ### 4. Confirm your first successful result
 
-1. Open the app and confirm **Connection status: Not connected**.
-2. Click **Connect GitHub** and complete the Nango/GitHub authorization flow.
-3. Confirm the page shows **Connected (demo session)** and a success message.
+1. Start the app.
+2. Click **Connect GitHub**.
+3. Authorize the GitHub test connection.
 4. Click **Fetch repositories**.
-5. Confirm you see a success message and up to 5 repositories (name/link, description, language, stars, updated time).
+5. Confirm that up to five repositories appear.
+
+If no repositories appear, check:
+- The connection status in the UI
+- Required environment variables (`NANGO_API_KEY`, `NANGO_INTEGRATION_ID`)
+- Backend logs in the terminal running `npm run dev`
+- Nango connection/logs in the Nango dashboard
+- GitHub authorization permissions for the connected account
 
 > A successful result is the repository list returned after connecting, not just the dev server starting.
 
@@ -100,35 +107,35 @@ Open [http://localhost:3000](http://localhost:3000). If port 3000 is already in 
 - **Public configuration**: none.
 - **Optional settings**: `NANGO_SECRET_KEY` fallback only. No other app-level env vars are read by the implementation.
 
-## What Nango handles / What you configure
+## What Nango handles
 
-### What Nango handles
-- GitHub authorization/connect flow (Connect UI).
-- Secure storage of provider credentials and token/credential lifecycle management.
-- Connection creation/management in Nango.
-- Authenticated proxying to external APIs using the stored connection.
+In this example, Nango handles:
 
-### What you configure
-- Nango account, environment, and GitHub (User OAuth) integration.
-- Integration ID (`NANGO_INTEGRATION_ID`) and server-side API key (`NANGO_API_KEY`).
-- Your app’s backend endpoints for session creation and data fetching.
-- The GitHub endpoint/params to call (`GET /user/repos`, `per_page=5`, `sort=updated`, `direction=desc`).
-- Real authentication, authorization, and connection ownership checks before using this pattern in a public app.
+- **OAuth authorization flow**: the frontend opens Nango Connect UI, and Nango manages the GitHub authorization flow for the configured integration.
+- **Secure storage of connection credentials/tokens**: Nango stores the connection credentials; this app does not receive raw GitHub OAuth tokens in the browser.
+- **Authenticated proxy request to GitHub**: the backend uses the Nango Node SDK to send `GET /user/repos` through Nango’s proxy using the stored connection.
+
+The developer configures:
+
+- The Nango integration (GitHub User OAuth, integration ID / `providerConfigKey`)
+- GitHub authorization settings in Nango (Nango-managed OAuth app or your own OAuth app)
+- Environment variables (`NANGO_API_KEY`, `NANGO_INTEGRATION_ID`)
+- The backend request using the connection identifier (stored server-side in a demo session for this example)
 
 ## How it works
 
-1. **User clicks Connect GitHub** in `app/page.tsx`.
-2. **Frontend requests a session token** from `POST /api/nango/session`.
-3. **Server creates a Nango Connect session** using `@nangohq/node` and returns `sessionToken` (API key stays server-side).
-4. **Frontend opens Nango Connect UI** via `@nangohq/frontend`, sets the session token, and waits for the `connect` event.
-5. **Frontend sends connection details to the server** (`POST /api/nango/connection`), where the demo stores the connection in an in-memory, cookie-scoped demo session (not a production ownership model).
-6. **User clicks Fetch repositories**; `GET /api/github/repos` uses the server-stored connection to call GitHub through Nango proxy (`GET /user/repos`) and returns up to 5 mapped repositories for display.
+1. The user clicks **Connect GitHub**.
+2. The frontend requests a short-lived session token from `POST /api/nango/session`; the backend creates it with the Nango Node SDK.
+3. The frontend opens Nango Connect UI and sets the session token. GitHub asks the user to authorize access.
+4. Nango completes the authorization and creates/stores the connection.
+5. The frontend receives the `connect` event and sends the connection identifier to `POST /api/nango/connection`; the backend stores it in a local demo session (not a production ownership model).
+6. When the user clicks **Fetch repositories**, the backend reads the stored connection and sends an authenticated proxy request to GitHub via Nango (`GET /user/repos?per_page=5&sort=updated&direction=desc`).
+7. The UI validates and displays up to five repositories, or an empty/error state.
 
 ```text
-User click → /api/nango/session → Nango Connect session token
-         → Nango Connect UI (GitHub OAuth) → connect event
-         → /api/nango/connection (demo session store)
-         → /api/github/repos → Nango proxy → GitHub /user/repos → UI list
+User click → /api/nango/session → Nango Connect UI → GitHub authorization
+         → Nango connection → /api/nango/connection (demo session store)
+         → /api/github/repos → Nango proxy → GitHub /user/repos → UI
 ```
 
 ### Key code excerpt
@@ -231,11 +238,11 @@ If deploying, you would need to:
 
 ## Challenge context
 
-- **Day**: 2 of 17
+- **Day**: 4 of 20
 - **Company/tool**: Nango + GitHub API
-- **Developer task**: Connect a GitHub account with Nango and retrieve up to five repositories in a minimal Next.js app.
-- **Artifact**: This repository (Next.js + TypeScript demo with Connect UI, server session endpoint, and Nango-proxied GitHub repo fetch).
-- **Status**: Implemented locally; build/install and session-endpoint smoke test verified; user reported end-to-end browser flow worked; full browser flow not independently observed by me in this session.
+- **Developer task**: Finish the Nango + GitHub connection example, make the first authenticated repository request clear, and improve developer experience/documentation.
+- **Artifact**: This repository (Next.js + TypeScript demo with Connect UI, server session endpoint, Nango-proxied GitHub repo fetch, and publication-ready README).
+- **Status**: Implemented locally; UI/README improved in this pass; previous build/install and session-endpoint smoke test passed; user previously reported end-to-end browser flow worked; full browser flow not independently re-tested after this UI update.
 
 ## Author
 

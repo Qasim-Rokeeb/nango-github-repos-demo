@@ -20,12 +20,40 @@ type ConnectionStatus = {
   connection: { providerConfigKey: string; createdAt: string } | null;
 };
 
+function isRepo(value: unknown): value is Repo {
+  if (!value || typeof value !== "object") return false;
+  const r = value as Record<string, unknown>;
+  return (
+    typeof r.id === "number" &&
+    typeof r.name === "string" &&
+    typeof r.fullName === "string" &&
+    typeof r.url === "string" &&
+    typeof r.private === "boolean" &&
+    (typeof r.description === "string" || r.description === null) &&
+    (typeof r.updatedAt === "string" || r.updatedAt === null) &&
+    (typeof r.language === "string" || r.language === null) &&
+    typeof r.stars === "number"
+  );
+}
+
+function parseRepos(value: unknown): Repo[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Invalid repository response: expected an array.");
+  }
+  const repos = value.filter(isRepo).slice(0, 5);
+  if (value.length > 0 && repos.length === 0) {
+    throw new Error("Invalid repository response: no valid repository records found.");
+  }
+  return repos;
+}
+
 export default function Home() {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [connectLoading, setConnectLoading] = useState(false);
   const [reposLoading, setReposLoading] = useState(false);
   const [repos, setRepos] = useState<Repo[]>([]);
+  const [hasFetchedRepos, setHasFetchedRepos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -114,15 +142,22 @@ export default function Home() {
     setReposLoading(true);
     try {
       const res = await fetch("/api/github/repos", { cache: "no-store" });
-      const data = (await res.json()) as { repos?: Repo[]; error?: string; details?: string };
+      const data = (await res.json()) as { repos?: unknown; error?: string; details?: string };
       if (!res.ok) {
         throw new Error(data.details || data.error || "Failed to fetch repositories.");
       }
-      setRepos(data.repos ?? []);
-      setSuccess(`Retrieved ${data.repos?.length ?? 0} repository(ies).`);
+      const parsedRepos = parseRepos(data.repos);
+      setRepos(parsedRepos);
+      setHasFetchedRepos(true);
+      setSuccess(
+        parsedRepos.length === 0
+          ? "Request succeeded, but no repositories were returned."
+          : `Retrieved ${parsedRepos.length} repository(ies).`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch repositories.");
       setRepos([]);
+      setHasFetchedRepos(true);
     } finally {
       setReposLoading(false);
     }
@@ -133,71 +168,117 @@ export default function Home() {
   return (
     <main>
       <div className="panel">
-        <h1>Nango GitHub Repos Demo</h1>
-        <p className="muted">
-          Minimal Next.js + TypeScript example using Nango to connect a GitHub account and retrieve up to five
-          repositories through an authenticated API request.
-        </p>
+        <header>
+          <p className="small" style={{ margin: 0, fontWeight: 600, color: "var(--accent)" }}>
+            Day 4 — AI Developer Experience
+          </p>
+          <h1>Nango GitHub Repos Demo</h1>
+          <p className="muted">
+            A minimal Next.js + TypeScript example that connects a GitHub account through Nango and retrieves up to five
+            repositories with an authenticated request.
+          </p>
+        </header>
 
-        <div className="status">
-          <strong>Connection status:</strong>{" "}
-          {statusLoading ? "Checking..." : connected ? "Connected (demo session)" : "Not connected"}
-          {status?.connection?.providerConfigKey ? (
-            <span className="muted"> — integration: <code>{status.connection.providerConfigKey}</code></span>
+        <section aria-labelledby="connection-status-heading" style={{ marginTop: 20 }}>
+          <h2 id="connection-status-heading" style={{ fontSize: "1rem", marginBottom: 8 }}>
+            Connection status
+          </h2>
+          <div className="status" role="status" aria-live="polite">
+            <strong>Status:</strong>{" "}
+            {statusLoading ? "Checking connection..." : connected ? "Connected (demo session)" : "Not connected"}
+            {status?.connection?.providerConfigKey ? (
+              <span className="muted">
+                {" "}
+                — integration: <code>{status.connection.providerConfigKey}</code>
+              </span>
+            ) : null}
+          </div>
+        </section>
+
+        <section aria-label="Actions" className="row">
+          <button type="button" onClick={handleConnect} disabled={connectLoading}>
+            {connectLoading ? "Connecting..." : connected ? "Reconnect GitHub" : "Connect GitHub"}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={handleFetchRepos}
+            disabled={reposLoading || !connected || statusLoading}
+          >
+            {reposLoading ? "Loading repositories..." : "Fetch repositories"}
+          </button>
+          <button type="button" className="secondary" onClick={refreshStatus} disabled={statusLoading}>
+            Refresh status
+          </button>
+        </section>
+
+        <div aria-live="polite">
+          {error ? (
+            <div className="error" role="alert">
+              <strong>Error:</strong> {error}
+            </div>
+          ) : null}
+          {success ? (
+            <div className="success" role="status">
+              <strong>Success:</strong> {success}
+            </div>
           ) : null}
         </div>
 
-        <div className="row">
-          <button onClick={handleConnect} disabled={connectLoading}>
-            {connectLoading ? "Connecting..." : connected ? "Reconnect GitHub" : "Connect GitHub"}
-          </button>
-          <button className="secondary" onClick={handleFetchRepos} disabled={reposLoading || !connected}>
-            {reposLoading ? "Loading repositories..." : "Fetch repositories"}
-          </button>
-          <button className="secondary" onClick={refreshStatus} disabled={statusLoading}>
-            Refresh status
-          </button>
-        </div>
-
-        {error ? <div className="error"><strong>Error:</strong> {error}</div> : null}
-        {success ? <div className="success"><strong>Success:</strong> {success}</div> : null}
         {!connected && !statusLoading ? (
-          <div className="notice">
-            Connect GitHub first. After authorization, use “Fetch repositories” to make an authenticated request.
+          <div className="notice" role="status">
+            Connect a GitHub account first. After authorization, fetch repositories to make an authenticated request.
           </div>
         ) : null}
 
-        <h2 style={{ marginTop: 28, marginBottom: 0, fontSize: "1.15rem" }}>Repositories (up to 5)</h2>
-        <p className="small">
-          Fetched via server-side Nango proxy from <code>GET /user/repos?per_page=5&amp;sort=updated</code>. The
-          connection ID is stored server-side for this local demo session and is not accepted from arbitrary client input.
-        </p>
+        <section aria-labelledby="repos-heading" style={{ marginTop: 28 }}>
+          <h2 id="repos-heading" style={{ marginBottom: 0, fontSize: "1.15rem" }}>
+            Repositories
+          </h2>
+          <p className="small">
+            Shows up to 5 repositories fetched through the server-side Nango proxy from{" "}
+            <code>GET /user/repos?per_page=5&amp;sort=updated&amp;direction=desc</code>.
+          </p>
 
-        {repos.length > 0 ? (
-          <ul className="repo-list">
-            {repos.map((repo) => (
-              <li key={repo.id} className="repo">
-                <h3>
-                  <a href={repo.url} target="_blank" rel="noreferrer">{repo.fullName}</a>
-                  {repo.private ? " (private)" : ""}
-                </h3>
-                <p style={{ margin: "6px 0" }}>{repo.description || "No description."}</p>
-                <div className="meta">
-                  <span>Language: {repo.language || "n/a"}</span>
-                  <span>Stars: {repo.stars}</span>
-                  <span>Updated: {repo.updatedAt ? new Date(repo.updatedAt).toLocaleString() : "n/a"}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">No repositories loaded yet.</p>
-        )}
+          {reposLoading ? (
+            <p className="status" role="status" aria-live="polite">
+              Loading repositories...
+            </p>
+          ) : repos.length > 0 ? (
+            <ul className="repo-list" aria-label="Repository list">
+              {repos.map((repo) => (
+                <li key={repo.id} className="repo">
+                  <h3 style={{ marginBottom: 4 }}>
+                    <a href={repo.url} target="_blank" rel="noreferrer noopener">
+                      {repo.fullName}
+                    </a>
+                    {repo.private ? <span className="muted"> (private)</span> : null}
+                  </h3>
+                  <p style={{ margin: "6px 0" }}>{repo.description || "No description provided."}</p>
+                  <div className="meta" aria-label={`Repository metadata for ${repo.fullName}`}>
+                    <span>Language: {repo.language || "n/a"}</span>
+                    <span>Stars: {repo.stars}</span>
+                    <span>Updated: {repo.updatedAt ? new Date(repo.updatedAt).toLocaleString() : "n/a"}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : hasFetchedRepos ? (
+            <p className="status" role="status">
+              No repositories found for this account, or none were returned by the request.
+            </p>
+          ) : (
+            <p className="muted" role="status">
+              No repositories loaded yet. Connect GitHub and click “Fetch repositories”.
+            </p>
+          )}
+        </section>
 
-        <p className="small" style={{ marginTop: 24 }}>
+        <footer className="small" style={{ marginTop: 24 }}>
           <strong>Demo limitation:</strong> This example has no real user authentication or database-backed connection
-          ownership checks. It is intended for local evaluation only, not as a secure public app.
-        </p>
+          ownership checks. The connection ID is stored in an in-memory server-side demo session and is not accepted as
+          arbitrary client input. It is intended for local evaluation only.
+        </footer>
       </div>
     </main>
   );
